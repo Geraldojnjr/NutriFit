@@ -6,6 +6,15 @@ export interface Nutrition {
   carbs: number;
 }
 
+export interface Comment {
+  id: string;
+  recipeId: string;
+  text: string;
+  rating: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Recipe {
   id: string;
   name: string;
@@ -16,4 +25,6 @@ export interface Recipe {
   nutrition: Nutrition;
   createdAt: number;
   updatedAt: number;
+  comments?: Comment[];
+  avgRating?: number;
 }

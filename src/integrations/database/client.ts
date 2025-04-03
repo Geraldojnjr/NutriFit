@@ -1,12 +1,12 @@
 import { dbConfig, DatabaseType } from "./config";
-import { Recipe } from "@/types/recipe";
+import { Recipe, Comment } from "@/types/recipe";
 
 // Importamos o cliente do Supabase apenas se estivermos usando o Supabase
 let supabase: any = null;
 if (dbConfig.type === 'supabase') {
-  // Importação dinâmica para evitar erros quando estiver usando MariaDB
+  // Importaï¿½ï¿½o dinï¿½mica para evitar erros quando estiver usando MariaDB
   const { supabase: supabaseClient } = require("@/integrations/supabase/client");
-  supabase = supabaseClient;
+    supabase = supabaseClient;
 }
 
 // Use environment variable for API base URL
@@ -18,6 +18,9 @@ export interface DatabaseClient {
   addRecipe: (recipe: Omit<Recipe, "id" | "createdAt" | "updatedAt">) => Promise<Recipe>;
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<void>;
   deleteRecipe: (id: string) => Promise<void>;
+  
+  addComment: (recipeId: string, text: string, rating: number) => Promise<Comment>;
+  getComments: (recipeId: string) => Promise<Comment[]>;
 }
 
 // Supabase implementation
@@ -149,10 +152,73 @@ const supabaseClient: DatabaseClient = {
     if (error) {
       throw error;
     }
+  },
+
+  addComment: async (recipeId, text, rating) => {
+    if (!supabase) {
+      console.error("Supabase client is not available");
+      throw new Error("Database client not available");
+    }
+
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({
+        recipe_id: recipeId,
+        text,
+        rating
+      })
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('Failed to insert comment');
+    }
+
+    return {
+      id: data[0].id,
+      recipeId: data[0].recipe_id,
+      text: data[0].text,
+      rating: data[0].rating,
+      createdAt: data[0].created_at ? new Date(data[0].created_at).getTime() : Date.now(),
+      updatedAt: data[0].updated_at ? new Date(data[0].updated_at).getTime() : Date.now()
+    };
+  },
+
+  getComments: async (recipeId) => {
+    if (!supabase) {
+      console.error("Supabase client is not available");
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('recipe_id', recipeId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    return data.map((comment: any) => ({
+      id: comment.id,
+      recipeId: comment.recipe_id,
+      text: comment.text,
+      rating: comment.rating,
+      createdAt: comment.created_at ? new Date(comment.created_at).getTime() : Date.now(),
+      updatedAt: comment.updated_at ? new Date(comment.updated_at).getTime() : Date.now()
+    }));
   }
 };
 
-// MariaDB implementation (using REST API)
+// MariaDB implementation
 const mariaDBImplementation: DatabaseClient = {
   getRecipes: async () => {
     try {
@@ -221,7 +287,24 @@ const mariaDBImplementation: DatabaseClient = {
       throw err;
     }
   }
+
+  addComment: async (recipeId, text, rating) => {
+    console.log("MariaDB addComment called", { recipeId, text, rating });
+    return {
+      id: "placeholder-id",
+      recipeId,
+      text,
+      rating,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+  },
+  getComments: async (recipeId) => {
+    console.log("MariaDB getComments called", { recipeId });
+    return [];
+  }
 };
+
 
 // Factory function to get the appropriate client
 export const getDatabaseClient = (): DatabaseClient => {
@@ -232,4 +315,5 @@ export const getDatabaseClient = (): DatabaseClient => {
   return supabaseClient;
 };
 
+// Export the configured client
 export const dbClient = getDatabaseClient();

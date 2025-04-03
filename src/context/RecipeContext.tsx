@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Recipe } from "../types/recipe";
+import { Recipe, Comment } from "../types/recipe";
 import { toast } from "sonner";
 import { dbClient } from "@/integrations/database/client";
 import { dbConfig } from "@/integrations/database/config";
@@ -15,6 +15,8 @@ interface RecipeContextProps {
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<void>;
   deleteRecipe: (id: string) => Promise<void>;
   getRecipeById: (id: string) => Recipe | undefined;
+  addComment: (recipeId: string, text: string, rating: number) => Promise<void>;
+  getComments: (recipeId: string) => Promise<Comment[]>;
 }
 
 const RecipeContext = createContext<RecipeContextProps | undefined>(undefined);
@@ -113,6 +115,64 @@ export const RecipeProvider = ({ children }: { children: ReactNode }) => {
     return recipes.find((recipe) => recipe.id === id);
   };
 
+  const addComment = async (recipeId: string, text: string, rating: number) => {
+    try {
+      const comment = await dbClient.addComment(recipeId, text, rating);
+      
+      setRecipes((prev) =>
+        prev.map((recipe) => {
+          if (recipe.id === recipeId) {
+            const comments = recipe.comments || [];
+            const newComments = [comment, ...comments];
+            const totalRating = newComments.reduce((sum, comment) => sum + comment.rating, 0);
+            const avgRating = totalRating / newComments.length;
+            
+            return {
+              ...recipe,
+              comments: newComments,
+              avgRating
+            };
+          }
+          return recipe;
+        })
+      );
+      
+      toast.success("Comentário adicionado com sucesso");
+    } catch (error) {
+      console.error(`Erro ao adicionar comentário (${dbConfig.type}):`, error);
+      toast.error("Falha ao adicionar comentário");
+      throw error;
+    }
+  };
+
+  const getComments = async (recipeId: string) => {
+    try {
+      const comments = await dbClient.getComments(recipeId);
+      
+      setRecipes((prev) =>
+        prev.map((recipe) => {
+          if (recipe.id === recipeId) {
+            const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0);
+            const avgRating = comments.length > 0 ? totalRating / comments.length : 0;
+            
+            return {
+              ...recipe,
+              comments,
+              avgRating
+            };
+          }
+          return recipe;
+        })
+      );
+      
+      return comments;
+    } catch (error) {
+      console.error(`Erro ao carregar comentários (${dbConfig.type}):`, error);
+      toast.error("Falha ao carregar comentários");
+      return [];
+    }
+  };
+
   return (
     <RecipeContext.Provider
       value={{
@@ -125,6 +185,8 @@ export const RecipeProvider = ({ children }: { children: ReactNode }) => {
         updateRecipe,
         deleteRecipe,
         getRecipeById,
+        addComment,
+        getComments,
       }}
     >
       {children}

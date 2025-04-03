@@ -1,7 +1,8 @@
+
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecipes } from "@/context/RecipeContext";
 import MainLayout from "@/components/layout/MainLayout";
-import { ArrowLeft, Edit, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, ExternalLink, Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Recipe, Comment } from "@/types/recipe";
@@ -18,13 +19,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 const RecipeDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { getRecipeById, deleteRecipe } = useRecipes();
+  const { getRecipeById, deleteRecipe, addComment, getComments } = useRecipes();
   const navigate = useNavigate();
   const [recipe, setRecipe] = useState<Recipe | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -37,6 +45,24 @@ const RecipeDetailPage = () => {
     }
   }, [id, getRecipeById, navigate]);
 
+  useEffect(() => {
+    const loadComments = async () => {
+      if (id) {
+        setIsLoadingComments(true);
+        try {
+          const fetchedComments = await getComments(id);
+          setComments(fetchedComments);
+        } finally {
+          setIsLoadingComments(false);
+        }
+      }
+    };
+    
+    if (isCommentsOpen) {
+      loadComments();
+    }
+  }, [id, getComments, isCommentsOpen]);
+
   const handleDelete = async () => {
     if (id) {
       try {
@@ -48,6 +74,31 @@ const RecipeDetailPage = () => {
         setIsDeleting(false);
       }
     }
+  };
+
+  const handleAddComment = async (text: string, rating: number) => {
+    if (id) {
+      await addComment(id, text, rating);
+      const updatedComments = await getComments(id);
+      setComments(updatedComments);
+    }
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex">
+        {Array(5).fill(0).map((_, i) => (
+          <Star 
+            key={i} 
+            size={16} 
+            className={`${i < Math.round(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+          />
+        ))}
+        <span className="ml-2 text-sm text-muted-foreground">
+          {rating.toFixed(1)}
+        </span>
+      </div>
+    );
   };
 
   if (!recipe) {
@@ -130,7 +181,17 @@ const RecipeDetailPage = () => {
 
         {/* Content */}
         <div className="p-4 space-y-6">
-          {/* Nutrition Section */}
+           {/* Recipe Rating */}
+           {recipe.avgRating ? (
+             <div className="flex items-center">
+               {renderStars(recipe.avgRating)}
+               <span className="ml-2 text-sm text-muted-foreground">
+                 ({(recipe.comments?.length || 0)} {(recipe.comments?.length || 0) === 1 ? 'avaliação' : 'avaliações'})
+               </span>
+             </div>
+           ) : null}
+ 
+           {/* Nutrition Section */}
           <Card className="overflow-hidden">
             <CardContent className="p-4">
               <h3 className="font-semibold mb-3">Informações Nutricionais</h3>
@@ -201,10 +262,40 @@ const RecipeDetailPage = () => {
               </Button>
             </div>
           )}
-        </div>
-      </div>
-    </MainLayout>
-  );
+
+<Separator />
+ 
+ {/* Comments Section */}
+ <Collapsible 
+   open={isCommentsOpen} 
+   onOpenChange={setIsCommentsOpen}
+   className="space-y-4"
+ >
+   <CollapsibleTrigger asChild>
+     <div className="flex justify-between items-center cursor-pointer">
+       <h3 className="font-semibold text-lg">Avaliações e Comentários</h3>
+       <Button variant="ghost" size="sm">
+         {isCommentsOpen ? "Esconder" : "Mostrar"}
+       </Button>
+     </div>
+   </CollapsibleTrigger>
+   <CollapsibleContent className="space-y-4 pt-2">
+     {isLoadingComments ? (
+       <div className="text-center py-6">
+         <p>Carregando comentários...</p>
+       </div>
+     ) : (
+       <RecipeComments 
+         comments={comments} 
+         onAddComment={handleAddComment} 
+       />
+     )}
+   </CollapsibleContent>
+ </Collapsible>
+</div>
+</div>
+</MainLayout>
+);
 };
 
 export default RecipeDetailPage;
