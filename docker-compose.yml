@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://backend:8083
+      - DOCKER_ENV=true
+    depends_on:
+      - backend
+    networks:
+      - nutrifit-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8083:8083"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads:/app/uploads
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=recipe_manager
+    depends_on:
+      - db
+    networks:
+      - nutrifit-network
+
+  db:
+    image: mariadb:10.5
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=recipe_manager
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nutrifit-network
+
+volumes:
+  mariadb_data:
+  uploads:
+
+networks:
+  nutrifit-network:
+    driver: bridge 

@@ -1,0 +1,21 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar arquivos de configuração
+COPY package*.json ./
+
+# Instalar dependências
+RUN npm install && npm install -g nodemon tsx
+
+# Copiar o resto do código
+COPY . .
+
+# Criar diretório de uploads
+RUN mkdir -p uploads && chmod 755 uploads
+
+# Expor a porta
+EXPOSE 8083
+
+# Comando para iniciar o servidor
+CMD ["npm", "run", "dev:server"] 
