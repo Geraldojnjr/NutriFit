@@ -57,13 +57,16 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
       - backup_data:/backup
+      - ../bkp:/backup/host
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_HOST=db
     command: >
       bash -c "while true; do
-        mysqldump -h $$MYSQL_HOST -u root -p$$MYSQL_ROOT_PASSWORD recipe_manager > /backup/backup_NutriFit-$$(date +%Y%m%d-%H%M%S).sql;
+        mysqldump -h $$MYSQL_HOST -u root -p$$MYSQL_ROOT_PASSWORD recipe_manager > /backup/backup-NutriFit-$$(date +%Y%m%d-%H%M%S).sql;
+        cp /backup/backup-*.sql /backup/host/;
         ls -t /backup/backup-*.sql | tail -n +6 | xargs -r rm;
+        ls -t /backup/host/backup-*.sql | tail -n +6 | xargs -r rm;
         sleep 86400;
       done"
     depends_on:
