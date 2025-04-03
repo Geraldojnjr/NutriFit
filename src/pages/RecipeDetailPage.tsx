@@ -4,7 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { ArrowLeft, Edit, ExternalLink, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Recipe } from "@/types/recipe";
+import { Recipe, Comment } from "@/types/recipe";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
