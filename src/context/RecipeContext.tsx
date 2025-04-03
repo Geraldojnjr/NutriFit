@@ -10,6 +10,8 @@ interface RecipeContextProps {
   loading: boolean;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  selectedCategories: string[] | null;
+  setSelectedCategories: (categories: string[] | null) => void;
   filteredRecipes: Recipe[];
   addRecipe: (recipe: Omit<Recipe, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<void>;
@@ -25,6 +27,7 @@ export const RecipeProvider = ({ children }: { children: ReactNode }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[] | null>(null);
 
   // Carregar receitas do banco de dados ao montar o componente
   useEffect(() => {

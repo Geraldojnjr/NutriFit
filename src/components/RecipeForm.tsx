@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, Upload } from "lucide-react";
+import { Plus, Minus, Upload, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface RecipeFormProps {
@@ -30,7 +31,8 @@ const RecipeForm = ({ initialData, onSubmit, isSubmitting = false }: RecipeFormP
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || "");
   const [nutrition, setNutrition] = useState<Nutrition>(initialData?.nutrition || emptyNutrition);
   const [isUploading, setIsUploading] = useState(false);
-
+  const [categories, setCategories] = useState<string[]>(initialData?.categories || []);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const handleAddIngredient = () => {
     setIngredients([...ingredients, ""]);
   };
@@ -77,6 +79,17 @@ const RecipeForm = ({ initialData, onSubmit, isSubmitting = false }: RecipeFormP
     });
   };
 
+  const handleAddCategory = () => {
+    if (selectedCategory && !categories.includes(selectedCategory)) {
+      setCategories([...categories, selectedCategory]);
+      setSelectedCategory("");
+    }
+  };
+
+  const handleRemoveCategory = (categoryToRemove: string) => {
+    setCategories(categories.filter(cat => cat !== categoryToRemove));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -90,6 +103,7 @@ const RecipeForm = ({ initialData, onSubmit, isSubmitting = false }: RecipeFormP
       imageUrl: imageUrl || undefined,
       videoUrl: videoUrl || undefined,
       nutrition,
+      categories: categories.length > 0 ? categories : undefined,
     });
   };
 
@@ -196,6 +210,49 @@ const RecipeForm = ({ initialData, onSubmit, isSubmitting = false }: RecipeFormP
           Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB
         </p>
       </div>
+
+      <div className="space-y-2">
+         <Label>Categorias</Label>
+         <div className="flex flex-wrap gap-1 mb-2">
+           {categories.map((cat, index) => (
+             <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
+               {cat}
+               <Button
+                 type="button"
+                 variant="ghost"
+                 size="sm"
+                 className="h-4 w-4 p-0"
+                 onClick={() => handleRemoveCategory(cat)}
+               >
+                 <X className="h-3 w-3" />
+               </Button>
+             </Badge>
+           ))}
+         </div>
+         <div className="flex gap-2">
+           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+             <SelectTrigger className="flex-1">
+               <SelectValue placeholder="Selecione uma categoria" />
+             </SelectTrigger>
+             <SelectContent>
+               {RECIPE_CATEGORIES.filter(cat => !categories.includes(cat)).map((cat) => (
+                 <SelectItem key={cat} value={cat}>
+                   {cat}
+                 </SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
+           <Button 
+             type="button" 
+             variant="outline" 
+             onClick={handleAddCategory}
+             disabled={!selectedCategory}
+           >
+             <Plus className="h-4 w-4" />
+             Adicionar
+           </Button>
+         </div>
+       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between items-center">
