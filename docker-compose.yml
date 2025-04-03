@@ -42,7 +42,7 @@ services:
   db:
     image: mariadb:10.5
     ports:
-      - "3307:3306"
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=recipe_manager
@@ -52,9 +52,29 @@ services:
     networks:
       - nutrifit-network
 
+  backup:
+    image: mariadb:10.5
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - backup_data:/backup
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_HOST=db
+    command: >
+      bash -c "while true; do
+        mysqldump -h $$MYSQL_HOST -u root -p$$MYSQL_ROOT_PASSWORD recipe_manager > /backup/backup_NutriFit-$$(date +%Y%m%d-%H%M%S).sql;
+        ls -t /backup/backup-*.sql | tail -n +6 | xargs -r rm;
+        sleep 86400;
+      done"
+    depends_on:
+      - db
+    networks:
+      - nutrifit-network
+
 volumes:
   mariadb_data:
   uploads:
+  backup_data:
 
 networks:
   nutrifit-network:
